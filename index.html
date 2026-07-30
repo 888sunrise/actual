@@ -89,6 +89,7 @@
       border-radius: 8px;
       outline: none;
       width: 100%;
+      ime-mode: disabled; /* IE/Edge用入力制御 */
     }
     input:focus { border-color: #2563eb; }
     
@@ -179,7 +180,7 @@
     .empty-msg { text-align: center; color: #94a3b8; padding: 20px 0; }
     .memo-input { grid-column: 1 / -1; }
 
-    /* --- モーダル (マニュアル) 用スタイル --- */
+    /* モーダル (マニュアル) 用スタイル */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -191,9 +192,7 @@
       align-items: center;
       padding: 12px;
     }
-    .modal-overlay.active {
-      display: flex;
-    }
+    .modal-overlay.active { display: flex; }
     .modal-content {
       background: #ffffff;
       padding: 20px 16px;
@@ -226,7 +225,6 @@
     }
     .modal-close:hover { color: #334155; }
 
-    /* マニュアル内のビジュアルUIモックアップ */
     .manual-step {
       margin-bottom: 16px;
       border-radius: 10px;
@@ -295,7 +293,6 @@
       font-size: 0.75rem;
     }
 
-    /* --- スマートフォン用レイアウト調整 (幅480px以下) --- */
     @media (max-width: 480px) {
       body { padding: 12px 6px; }
       .card { padding: 16px 12px; }
@@ -325,7 +322,8 @@
       <div class="form-grid">
         <div class="input-group">
           <label for="subtotal">作業小計 (円)</label>
-          <input type="text" id="subtotal" placeholder="例: 100,000" oninput="handleMoneyInput(this); calculateEstimate();">
+          <!-- inputmode="numeric" と pattern でスマホの半角テンキー呼び出しを設定 -->
+          <input type="text" id="subtotal" inputmode="numeric" pattern="[0-9]*" placeholder="例: 100,000" oninput="handleMoneyInput(this); calculateEstimate();">
         </div>
 
         <div class="input-group">
@@ -357,7 +355,8 @@
         <div class="confirm-input-group">
           <div class="input-group">
             <label for="confirmedPayment">① 業者確定支払金額 (円)</label>
-            <input type="text" id="confirmedPayment" placeholder="例: 70,000" oninput="handleMoneyInput(this)">
+            <!-- inputmode="numeric" と pattern でスマホの半角テンキー呼び出しを設定 -->
+            <input type="text" id="confirmedPayment" inputmode="numeric" pattern="[0-9]*" placeholder="例: 70,000" oninput="handleMoneyInput(this)">
           </div>
           <button class="btn-confirm" onclick="applyConfirmation()">確定</button>
         </div>
@@ -419,7 +418,6 @@
       </div>
       <div class="modal-body">
         
-        <!-- STEP 1 -->
         <div class="manual-step" style="background:#f8fafc; border-color:#e2e8f0;">
           <span class="step-badge">STEP 1</span>
           <div class="step-title">作業小計と目標粗利率の入力</div>
@@ -442,7 +440,6 @@
           </div>
         </div>
 
-        <!-- STEP 2 -->
         <div class="manual-step" style="background:#f0fdf4; border-color:#bbf7d0;">
           <span class="step-badge" style="background:#059669;">STEP 2</span>
           <div class="step-title">業者支払額の決定・確定</div>
@@ -461,7 +458,6 @@
           </div>
         </div>
 
-        <!-- STEP 3 -->
         <div class="manual-step" style="background:#f0f9ff; border-color:#bae6fd;">
           <span class="step-badge" style="background:#0284c7;">STEP 3</span>
           <div class="step-title">履歴保存とCSV出力</div>
@@ -514,19 +510,30 @@
       return Math.floor(num).toLocaleString('ja-JP');
     }
 
+    // 全角数字を半角数字に変換し、数字以外を除去する関数
+    function cleanToHalfWidthNumbers(str) {
+      if (!str) return '';
+      // 全角数字 (０-９) を半角 (0-9) に変換
+      let half = str.replace(/[０-９]/g, function(s) {
+        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+      });
+      // 半角数字以外の文字（全角文字・記号・英字など）を除去
+      return half.replace(/[^0-9]/g, '');
+    }
+
     // 入力欄文字列から数値だけを抽出
     function parseNumber(str) {
-      if (!str) return 0;
-      const cleanStr = str.toString().replace(/[^0-9]/g, '');
+      const cleanStr = cleanToHalfWidthNumbers(str);
       return parseFloat(cleanStr) || 0;
     }
 
-    // 入力時にリアルタイムでカンマを挿入する処理
+    // 入力時にリアルタイムで半角変換＆カンマ挿入する処理
     function handleMoneyInput(input) {
-      const val = parseNumber(input.value);
-      if (val === 0) {
-        input.value = input.value.replace(/[^0-9]/g, '') === '' ? '' : '0';
+      const cleanDigits = cleanToHalfWidthNumbers(input.value);
+      if (cleanDigits === '') {
+        input.value = '';
       } else {
+        const val = parseFloat(cleanDigits) || 0;
         input.value = formatNumber(val);
       }
     }
