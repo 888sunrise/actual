@@ -377,10 +377,16 @@
 
         async function initApp() {
             try {
-                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-                    // Fallback dummy config for local viewing if env is missing
-                    projectId: "dummy-project" 
+                const userFirebaseConfig = {
+                    apiKey: "AIzaSyBYvnit906MPWxgnJRWhE4P9uo2dbSOILI",
+                    authDomain: "zaiko-sience2026.firebaseapp.com",
+                    projectId: "zaiko-sience2026",
+                    storageBucket: "zaiko-sience2026.firebasestorage.app",
+                    messagingSenderId: "828909396222",
+                    appId: "1:828909396222:web:22e82d9dfc46f6d56505af"
                 };
+                
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : userFirebaseConfig;
                 
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
