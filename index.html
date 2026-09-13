@@ -1,709 +1,1087 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>作業業者 支払額・粗利計算ツール</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #f1f5f9;
-      color: #334155;
-      margin: 0;
-      padding: 20px 10px;
-      display: flex;
-      justify-content: center;
-    }
-    .container {
-      width: 100%;
-      max-width: 680px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .card {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-      border: 1px solid #e2e8f0;
-      position: relative;
-    }
-    .card-header { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      margin-bottom: 20px; 
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    h2 { margin: 0; font-size: 1.25rem; color: #0f172a; }
-    
-    .header-btns {
-      display: flex;
-      gap: 8px;
-    }
-    .btn-clear {
-      background-color: #94a3b8;
-      color: white;
-      padding: 8px 12px;
-      font-size: 0.9rem;
-      font-weight: bold;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    .btn-clear:hover { background-color: #64748b; }
-    .btn-manual {
-      background-color: #0284c7;
-      color: white;
-      padding: 8px 12px;
-      font-size: 0.9rem;
-      font-weight: bold;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    .btn-manual:hover { background-color: #0369a1; }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-    .input-group { display: flex; flex-direction: column; }
-    
-    label { 
-      font-size: 1.05rem; 
-      font-weight: bold; 
-      color: #1e293b; 
-      margin-bottom: 6px; 
-    }
-    input {
-      padding: 12px 14px;
-      font-size: 1rem; 
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      outline: none;
-      width: 100%;
-      ime-mode: disabled; /* IE/Edge用入力制御 */
-    }
-    input:focus { border-color: #2563eb; }
-    
-    .result-box-estimate {
-      margin-top: 16px;
-      padding: 14px;
-      background-color: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-    }
-    .result-box-title {
-      font-size: 1rem;
-      font-weight: bold;
-      color: #64748b;
-      margin-bottom: 10px;
-    }
-    .result-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      font-size: 1rem;
-    }
-    .result-row:last-child { margin-bottom: 0; }
-    
-    .highlight { 
-      font-size: 1.35rem; 
-      font-weight: bold; 
-      color: #0f172a; 
-    }
-    
-    .confirm-input-section {
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 2px dashed #cbd5e1;
-    }
-    .confirm-input-group {
-      display: flex;
-      gap: 10px;
-      align-items: flex-end;
-    }
-    .confirm-input-group .input-group { flex: 1; }
-
-    .result-box-confirmed {
-      margin-top: 16px;
-      padding: 16px;
-      background-color: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 10px;
-    }
-    .confirmed-title {
-      font-size: 1rem;
-      font-weight: bold;
-      color: #1d4ed8;
-      margin-bottom: 10px;
-    }
-    
-    .confirmed-text {
-      font-size: 1.5rem; 
-      font-weight: bold;
-      color: #1e40af;
-    }
-
-    .btn-group { display: flex; gap: 10px; margin-top: 20px; }
-    button {
-      padding: 12px 16px;
-      font-size: 1rem;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .btn-primary { background-color: #2563eb; color: #ffffff; }
-    .btn-primary:hover { background-color: #1d4ed8; }
-    .btn-confirm { background-color: #0d9488; color: #ffffff; white-space: nowrap; height: 47px; }
-    .btn-confirm:hover { background-color: #0f766e; }
-    .btn-secondary { background-color: #059669; color: #ffffff; }
-    .btn-secondary:hover { background-color: #047857; }
-    .btn-danger { background-color: #ef4444; color: #ffffff; }
-    .btn-danger:hover { background-color: #dc2626; }
-
-    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: right; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
-    th { background-color: #f8fafc; color: #64748b; font-weight: bold; }
-    th:first-child, td:first-child { text-align: left; }
-    .empty-msg { text-align: center; color: #94a3b8; padding: 20px 0; }
-    .memo-input { grid-column: 1 / -1; }
-
-    /* モーダル (マニュアル) 用スタイル */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(4px);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-      padding: 12px;
-    }
-    .modal-overlay.active { display: flex; }
-    .modal-content {
-      background: #ffffff;
-      padding: 20px 16px;
-      border-radius: 14px;
-      max-width: 580px;
-      width: 100%;
-      max-height: 85vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      border: 1px solid #e2e8f0;
-    }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px solid #f1f5f9;
-      padding-bottom: 10px;
-      margin-bottom: 16px;
-    }
-    .modal-header h3 { margin: 0; color: #0f172a; font-size: 1.15rem; display: flex; align-items: center; gap: 6px; }
-    .modal-close {
-      font-size: 1.5rem;
-      font-weight: bold;
-      cursor: pointer;
-      color: #94a3b8;
-      border: none;
-      background: none;
-      line-height: 1;
-      padding: 0 4px;
-    }
-    .modal-close:hover { color: #334155; }
-
-    .manual-step {
-      margin-bottom: 16px;
-      border-radius: 10px;
-      padding: 14px;
-      border: 1px solid #cbd5e1;
-    }
-    .step-badge {
-      display: inline-block;
-      background: #0284c7;
-      color: white;
-      font-size: 0.75rem;
-      font-weight: bold;
-      padding: 2px 8px;
-      border-radius: 20px;
-      margin-bottom: 6px;
-    }
-    .step-title {
-      font-size: 1rem;
-      font-weight: bold;
-      color: #0f172a;
-      margin-bottom: 6px;
-    }
-    .step-desc {
-      font-size: 0.88rem;
-      color: #475569;
-      line-height: 1.45;
-      margin-bottom: 10px;
-    }
-    .mock-box {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 0.85rem;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .mock-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 4px 0;
-    }
-    .mock-label { color: #64748b; font-weight: bold; }
-    .mock-input-val {
-      background: #eff6ff;
-      border: 1px solid #3b82f6;
-      color: #1d4ed8;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-    .mock-badge-btn {
-      background: #0d9488;
-      color: white;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 0.8rem;
-    }
-    .mock-tag {
-      background: #e2e8f0;
-      color: #334155;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 0.75rem;
-    }
-
-    @media (max-width: 480px) {
-      body { padding: 12px 6px; }
-      .card { padding: 16px 12px; }
-      .form-grid { grid-template-columns: 1fr; gap: 12px; }
-      .card-header { margin-bottom: 14px; }
-      h2 { font-size: 1.15rem; }
-      .highlight { font-size: 1.25rem; }
-      .confirmed-text { font-size: 1.35rem; }
-      .confirm-input-group { flex-direction: column; align-items: stretch; gap: 8px; }
-      .btn-confirm { height: 44px; width: 100%; }
-      .modal-content { padding: 16px 12px; }
-    }
-  </style>
-</head>
-<body>
-
-  <div class="container">
-    <div class="card">
-      <div class="card-header">
-        <h2>業者支払額・粗利計算</h2>
-        <div class="header-btns">
-          <button class="btn-manual" onclick="toggleModal(true)">📖 使い方</button>
-          <button class="btn-clear" onclick="clearInputs()">クリア</button>
-        </div>
-      </div>
-
-      <div class="form-grid">
-        <div class="input-group">
-          <label for="subtotal">作業小計 (円)</label>
-          <!-- inputmode="numeric" と pattern でスマホの半角テンキー呼び出しを設定 -->
-          <input type="text" id="subtotal" inputmode="numeric" pattern="[0-9]*" placeholder="例: 100,000" oninput="handleMoneyInput(this); calculateEstimate();">
-        </div>
-
-        <div class="input-group">
-          <label for="margin">粗利率 (%)</label>
-          <input type="number" id="margin" step="0.1" value="30" placeholder="例: 30" oninput="calculateEstimate()">
-        </div>
-
-        <div class="input-group memo-input">
-          <label for="memo">備考・案件名 (任意)</label>
-          <input type="text" id="memo" placeholder="例: A社 7月分作業">
-        </div>
-      </div>
-
-      <!-- 目安結果表示 -->
-      <div class="result-box-estimate">
-        <div class="result-box-title">【目安金額】</div>
-        <div class="result-row">
-          <span>粗利額 (目安/切捨て)</span>
-          <span id="estProfit" class="highlight">0 円</span>
-        </div>
-        <div class="result-row">
-          <span>業者支払額 (目安)</span>
-          <span id="estPayment" class="highlight" style="color: #2563eb;">0 円</span>
-        </div>
-      </div>
-
-      <!-- ① 業者確定金額の入力枠＆確定ボタン -->
-      <div class="confirm-input-section">
-        <div class="confirm-input-group">
-          <div class="input-group">
-            <label for="confirmedPayment">① 業者確定支払金額 (円)</label>
-            <!-- inputmode="numeric" と pattern でスマホの半角テンキー呼び出しを設定 -->
-            <input type="text" id="confirmedPayment" inputmode="numeric" pattern="[0-9]*" placeholder="例: 70,000" oninput="handleMoneyInput(this)">
-          </div>
-          <button class="btn-confirm" onclick="applyConfirmation()">確定</button>
-        </div>
-      </div>
-
-      <!-- ② 確定結果 (再計算値) -->
-      <div class="result-box-confirmed">
-        <div class="confirmed-title">② 確定結果 (再計算値)</div>
-        <div class="result-row">
-          <span>確定 粗利額</span>
-          <span id="confirmedProfit" class="confirmed-text">0 円</span>
-        </div>
-        <div class="result-row">
-          <span>確定 粗利率</span>
-          <span id="confirmedMarginRate" class="confirmed-text">0 %</span>
-        </div>
-      </div>
-
-      <div class="btn-group">
-        <button class="btn-primary" style="width: 100%;" onclick="saveHistory()">履歴に保存</button>
-      </div>
-    </div>
-
-    <!-- 履歴一覧 -->
-    <div class="card">
-      <div class="history-header">
-        <h3 style="margin:0; font-size:1.1rem;">計算履歴</h3>
-        <div style="display: flex; gap: 6px;">
-          <button class="btn-secondary" style="padding: 6px 10px; font-size: 0.85rem;" onclick="exportCSV()">CSV出力</button>
-          <button class="btn-danger" style="padding: 6px 10px; font-size: 0.85rem;" onclick="clearHistory()">履歴消去</button>
-        </div>
-      </div>
-
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>日時</th>
-              <th>備考</th>
-              <th>作業小計</th>
-              <th>確定業者支払額</th>
-              <th>確定粗利額</th>
-              <th>確定粗利率</th>
-            </tr>
-          </thead>
-          <tbody id="historyTableBody"></tbody>
-        </table>
-        <div id="emptyMsg" class="empty-msg">保存された履歴はありません</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 使い方マニュアル (モーダル) -->
-  <div id="manualModal" class="modal-overlay" onclick="toggleModal(false)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <h3>📖 アプリの使い方マニュアル</h3>
-        <button class="modal-close" onclick="toggleModal(false)">&times;</button>
-      </div>
-      <div class="modal-body">
-        
-        <div class="manual-step" style="background:#f8fafc; border-color:#e2e8f0;">
-          <span class="step-badge">STEP 1</span>
-          <div class="step-title">作業小計と目標粗利率の入力</div>
-          <div class="step-desc">
-            「作業小計」を入力すると、希望の「粗利率（初期値30%）」を元に、業者支払額の<strong>目安金額</strong>が即座に自動計算されます。
-          </div>
-          <div class="mock-box">
-            <div class="mock-row">
-              <span class="mock-label">作業小計:</span>
-              <span class="mock-input-val">100,000 円</span>
-            </div>
-            <div class="mock-row">
-              <span class="mock-label">粗利率 (%):</span>
-              <span class="mock-input-val">30 %</span>
-            </div>
-            <div class="mock-row" style="margin-top:4px; background:#f1f5f9; padding:6px; border-radius:4px;">
-              <span class="mock-label">業者支払額 (目安):</span>
-              <span style="color:#2563eb; font-weight:bold;">70,000 円</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="manual-step" style="background:#f0fdf4; border-color:#bbf7d0;">
-          <span class="step-badge" style="background:#059669;">STEP 2</span>
-          <div class="step-title">業者支払額の決定・確定</div>
-          <div class="step-desc">
-            業者と決定した実際の請求額を入力し、<span class="mock-badge-btn">確定</span> ボタンを押します。決定額に対する「実質粗利額」と「実質粗利率」が再計算されます。
-          </div>
-          <div class="mock-box">
-            <div class="mock-row">
-              <span class="mock-label">① 確定支払金額:</span>
-              <span class="mock-input-val" style="border-color:#0d9488; color:#0f766e;">68,000 円</span>
-            </div>
-            <div class="mock-row" style="margin-top:4px; background:#eff6ff; padding:6px; border-radius:4px;">
-              <span class="mock-label" style="color:#1e40af;">② 確定 粗利率:</span>
-              <span style="color:#1e40af; font-weight:bold; font-size:1rem;">32.00 %</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="manual-step" style="background:#f0f9ff; border-color:#bae6fd;">
-          <span class="step-badge" style="background:#0284c7;">STEP 3</span>
-          <div class="step-title">履歴保存とCSV出力</div>
-          <div class="step-desc">
-            「履歴に保存」を押すと記録されます。「CSV出力」ボタンでExcel等で使える形式としてファイルをダウンロードできます。
-          </div>
-          <div class="mock-box">
-            <div class="mock-row">
-              <span class="mock-tag">履歴保存</span>
-              <span style="font-size:0.8rem; color:#64748b;">お使いのブラウザへ安全に自動保存</span>
-            </div>
-            <div class="mock-row" style="margin-top:4px;">
-              <span class="mock-tag" style="background:#dcfce7; color:#15803d;">CSV出力</span>
-              <span style="font-size:0.8rem; color:#64748b;">文字化け防止処理（BOM付）済み</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let historyData = [];
-    let isConfirmed = false;
-    let finalData = { subtotal: 0, payment: 0, profit: 0, marginRate: 0 };
-
-    window.onload = function() {
-      const saved = localStorage.getItem('calc_history_v2');
-      if (saved) {
-        try {
-          historyData = JSON.parse(saved);
-          renderHistory();
-        } catch(e) {}
-      }
-      calculateEstimate();
-    };
-
-    function toggleModal(show) {
-      const modal = document.getElementById('manualModal');
-      if (show) {
-        modal.classList.add('active');
-      } else {
-        modal.classList.remove('active');
-      }
-    }
-
-    // 数値をカンマ区切り文字列に整形
-    function formatNumber(num) {
-      return Math.floor(num).toLocaleString('ja-JP');
-    }
-
-    // 全角数字を半角数字に変換し、数字以外を除去する関数
-    function cleanToHalfWidthNumbers(str) {
-      if (!str) return '';
-      // 全角数字 (０-９) を半角 (0-9) に変換
-      let half = str.replace(/[０-９]/g, function(s) {
-        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
-      });
-      // 半角数字以外の文字（全角文字・記号・英字など）を除去
-      return half.replace(/[^0-9]/g, '');
-    }
-
-    // 入力欄文字列から数値だけを抽出
-    function parseNumber(str) {
-      const cleanStr = cleanToHalfWidthNumbers(str);
-      return parseFloat(cleanStr) || 0;
-    }
-
-    // 入力時にリアルタイムで半角変換＆カンマ挿入する処理
-    function handleMoneyInput(input) {
-      const cleanDigits = cleanToHalfWidthNumbers(input.value);
-      if (cleanDigits === '') {
-        input.value = '';
-      } else {
-        const val = parseFloat(cleanDigits) || 0;
-        input.value = formatNumber(val);
-      }
-    }
-
-    function calculateEstimate() {
-      const subtotal = parseNumber(document.getElementById('subtotal').value);
-      const marginPercent = parseFloat(document.getElementById('margin').value) || 0;
-
-      const estProfit = Math.floor(subtotal * (marginPercent / 100));
-      const estPayment = subtotal - estProfit;
-
-      document.getElementById('estProfit').innerText = formatNumber(estProfit) + " 円";
-      document.getElementById('estPayment').innerText = formatNumber(estPayment) + " 円";
-
-      if (!isConfirmed) {
-        document.getElementById('confirmedPayment').placeholder = estPayment > 0 ? "例: " + formatNumber(estPayment) : "例: 70,000";
-      }
-    }
-
-    function applyConfirmation() {
-      const subtotal = parseNumber(document.getElementById('subtotal').value);
-      const confirmedPaymentInput = document.getElementById('confirmedPayment').value;
-      const confirmedPayment = parseNumber(confirmedPaymentInput);
-
-      if (subtotal <= 0) {
-        alert('先に作業小計を入力してください。');
-        return;
-      }
-      if (!confirmedPaymentInput || confirmedPayment < 0) {
-        alert('業者確定支払金額を入力してください。');
-        return;
-      }
-
-      const exactProfit = subtotal - confirmedPayment;
-      const exactMarginRate = subtotal > 0 ? Math.round((exactProfit / subtotal) * 10000) / 100 : 0;
-
-      document.getElementById('confirmedProfit').innerText = formatNumber(exactProfit) + " 円";
-      document.getElementById('confirmedMarginRate').innerText = exactMarginRate.toFixed(2) + " %";
-
-      isConfirmed = true;
-      finalData = {
-        subtotal: subtotal,
-        payment: confirmedPayment,
-        profit: exactProfit,
-        marginRate: exactMarginRate
-      };
-    }
-
-    function clearInputs() {
-      document.getElementById('subtotal').value = '';
-      document.getElementById('margin').value = '30';
-      document.getElementById('memo').value = '';
-      document.getElementById('confirmedPayment').value = '';
-      
-      document.getElementById('estProfit').innerText = '0 円';
-      document.getElementById('estPayment').innerText = '0 円';
-      document.getElementById('confirmedPayment').placeholder = '例: 70,000';
-      
-      document.getElementById('confirmedProfit').innerText = '0 円';
-      document.getElementById('confirmedMarginRate').innerText = '0 %';
-      
-      isConfirmed = false;
-      finalData = { subtotal: 0, payment: 0, profit: 0, marginRate: 0 };
-    }
-
-    function saveHistory() {
-      const subtotal = parseNumber(document.getElementById('subtotal').value);
-      if (subtotal <= 0) {
-        alert('作業小計を入力してください。');
-        return;
-      }
-
-      if (!isConfirmed) {
-        const confirmedPaymentInput = document.getElementById('confirmedPayment').value;
-        if (confirmedPaymentInput && parseNumber(confirmedPaymentInput) >= 0) {
-          applyConfirmation();
-        } else {
-          const marginPercent = parseFloat(document.getElementById('margin').value) || 0;
-          const estProfit = Math.floor(subtotal * (marginPercent / 100));
-          const estPayment = subtotal - estProfit;
-          document.getElementById('confirmedPayment').value = formatNumber(estPayment);
-          applyConfirmation();
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クラウド在庫管理アプリ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
-      }
+        /* スクロールバーのカスタマイズ（テーブル用） */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        .toast {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-      const memo = document.getElementById('memo').value.trim();
-      const now = new Date();
-      const timestamp = now.getFullYear() + '/' + 
-                        String(now.getMonth() + 1).padStart(2, '0') + '/' + 
-                        String(now.getDate()).padStart(2, '0') + ' ' + 
-                        String(now.getHours()).padStart(2, '0') + ':' + 
-                        String(now.getMinutes()).padStart(2, '0');
+    <!-- ナビゲーションバー -->
+    <header class="bg-blue-800 text-white shadow-md z-10 flex-shrink-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-boxes-stacked text-2xl"></i>
+                    <span class="font-bold text-xl tracking-wider">StockSync</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- 管理者通知バッジ -->
+                    <button id="nav-notification-btn" class="relative p-2 text-blue-200 hover:text-white hidden transition-colors" onclick="switchTab('admin')">
+                        <i class="fa-solid fa-bell text-xl"></i>
+                        <span id="zero-stock-badge" class="absolute top-0 right-0 block h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center transform translate-x-1 -translate-y-1 hidden shadow-sm">0</span>
+                    </button>
+                    <!-- 権限トグル（プロトタイプ用） -->
+                    <div class="flex items-center bg-blue-900 rounded-full p-1 cursor-pointer" onclick="toggleAdmin()">
+                        <div id="role-indicator-user" class="px-3 py-1 text-sm rounded-full bg-blue-500 font-semibold transition-all">一般</div>
+                        <div id="role-indicator-admin" class="px-3 py-1 text-sm rounded-full text-blue-300 font-semibold transition-all">管理者</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
 
-      const item = {
-        date: timestamp,
-        memo: memo || '-',
-        subtotal: finalData.subtotal,
-        payment: finalData.payment,
-        profit: finalData.profit,
-        marginRate: finalData.marginRate
-      };
+    <!-- タブナビゲーション -->
+    <div class="bg-white border-b flex-shrink-0 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 overflow-x-auto custom-scrollbar">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn py-4 border-b-2 border-blue-600 text-blue-600 font-medium whitespace-nowrap px-1">
+                <i class="fa-solid fa-chart-pie mr-2"></i>ダッシュボード
+            </button>
+            <button onclick="switchTab('search')" id="tab-search" class="tab-btn py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap px-1">
+                <i class="fa-solid fa-magnifying-glass mr-2"></i>検索・一覧
+            </button>
+            <button onclick="switchTab('add')" id="tab-add" class="tab-btn py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap px-1">
+                <i class="fa-solid fa-plus mr-2"></i>新規登録
+            </button>
+            <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn py-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap px-1 hidden">
+                <i class="fa-solid fa-gear mr-2"></i>管理メニュー
+            </button>
+        </div>
+    </div>
 
-      historyData.unshift(item);
-      localStorage.setItem('calc_history_v2', JSON.stringify(historyData));
-      renderHistory();
+    <!-- メインコンテンツ -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-gray-50" id="main-content">
+        
+        <!-- ローディング表示 -->
+        <div id="loading-spinner" class="flex flex-col justify-center items-center h-full">
+            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500 mb-4"></i>
+            <p class="text-gray-500">データを読み込んでいます...</p>
+        </div>
 
-      clearInputs();
-    }
+        <!-- アプリケーションコンテンツ（データ読み込み後に表示） -->
+        <div id="app-content" class="hidden max-w-7xl mx-auto space-y-6">
 
-    function renderHistory() {
-      const tbody = document.getElementById('historyTableBody');
-      const emptyMsg = document.getElementById('emptyMsg');
-      tbody.innerHTML = '';
+            <!-- タブ1: ダッシュボード -->
+            <div id="view-dashboard" class="view-section space-y-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">カテゴリ別在庫サマリー</h2>
+                    <p class="text-gray-500 text-sm mb-4">カテゴリをクリックすると、下のリストが絞り込まれます。</p>
+                    <div id="category-cards" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <!-- カテゴリカードがここに動的に生成されます -->
+                    </div>
+                </div>
 
-      if (historyData.length === 0) {
-        emptyMsg.style.display = 'block';
-        return;
-      }
-      emptyMsg.style.display = 'none';
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                        <h3 class="font-bold text-gray-700" id="dashboard-list-title">全カテゴリ一覧</h3>
+                        <button onclick="clearDashboardFilter()" id="clear-filter-btn" class="hidden text-sm text-blue-600 hover:text-blue-800">
+                            絞り込み解除
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">カテゴリ</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">メーカー</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">型番</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">在庫数</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">場所</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboard-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- 一覧データ -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-      historyData.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.date}</td>
-          <td>${escapeHtml(item.memo)}</td>
-          <td>${formatNumber(item.subtotal)}円</td>
-          <td style="font-weight:bold; color:#2563eb;">${formatNumber(item.payment)}円</td>
-          <td>${formatNumber(item.profit)}円</td>
-          <td>${item.marginRate}%</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+            <!-- タブ2: 検索・一覧 -->
+            <div id="view-search" class="view-section hidden space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">在庫検索</h2>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="search-input" class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-shadow" placeholder="型番、メーカー、詳細などを3文字以上入力してください..." oninput="handleSearch()">
+                    </div>
+                    <p id="search-help-text" class="text-sm text-gray-500 mt-2 ml-1">3文字以上入力すると結果が表示されます。</p>
+                </div>
 
-    function escapeHtml(str) {
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">カテゴリ</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">メーカー / 型番</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">部材詳細</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">在庫数</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">保管場所</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="search-table-body" class="bg-white divide-y divide-gray-200">
+                                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">検索条件を入力してください。</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-    function clearHistory() {
-      if (historyData.length === 0) return;
-      if (confirm('保存された履歴をすべて削除してもよろしいですか？')) {
-        historyData = [];
-        localStorage.removeItem('calc_history_v2');
-        renderHistory();
-      }
-    }
+            <!-- タブ3: 新規登録 -->
+            <div id="view-add" class="view-section hidden">
+                <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">新規アイテム登録</h2>
+                    <form id="add-form" onsubmit="handleAddNewItem(event)" class="space-y-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">カテゴリ <span class="text-red-500">*</span></label>
+                                <input type="text" id="add-category" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="例: ①ランプ">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">メーカー</label>
+                                <input type="text" id="add-maker" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="例: オーデリック">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">型番 <span class="text-red-500">*</span></label>
+                                <input type="text" id="add-model" required class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="例: OD261770">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">初期在庫数 <span class="text-red-500">*</span></label>
+                                <input type="number" id="add-qty" required min="0" value="0" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">保管場所</label>
+                                <input type="text" id="add-location" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="例: 新宿事務所">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">保管箇所</label>
+                                <input type="text" id="add-spot" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="例: 棚A-1">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">部材詳細</label>
+                                <textarea id="add-details" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="仕様や備考など"></textarea>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t flex justify-end">
+                            <button type="submit" id="btn-submit-add" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg shadow-sm transition-colors flex items-center">
+                                <i class="fa-solid fa-check mr-2"></i>登録する
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
 
-    function exportCSV() {
-      if (historyData.length === 0) {
-        alert('出力できる履歴データがありません。');
-        return;
-      }
+            <!-- タブ4: 管理メニュー (Admin Only) -->
+            <div id="view-admin" class="view-section hidden space-y-8">
+                
+                <!-- 在庫0アラートセクション -->
+                <div id="admin-zero-stock-section" class="bg-red-50 border-l-4 border-red-500 p-6 rounded-r-xl shadow-sm hidden">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl mt-1"></i>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h3 class="text-lg font-bold text-red-800">在庫0アラート</h3>
+                            <p class="text-red-700 text-sm mt-1 mb-4">以下の商品の在庫が0になっています。データの削除等の対応を行ってください。</p>
+                            <div class="bg-white rounded border border-red-200 overflow-hidden">
+                                <table class="min-w-full divide-y divide-red-200 text-sm">
+                                    <thead class="bg-red-100">
+                                        <tr><th class="px-3 py-2 text-left">型番</th><th class="px-3 py-2 text-left">カテゴリ</th><th class="px-3 py-2 text-center">操作</th></tr>
+                                    </thead>
+                                    <tbody id="zero-stock-table-body" class="divide-y divide-red-100">
+                                        <!-- 動的生成 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-      let csvContent = "\uFEFF日時,備考,作業小計(円),確定業者支払額(円),確定粗利額(円),確定粗利率(%)\n";
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- データインポート -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-4 text-blue-800">
+                            <i class="fa-solid fa-file-import text-xl mr-2"></i>
+                            <h3 class="text-lg font-bold">マスターデータ一括インポート</h3>
+                        </div>
+                        <p class="text-sm text-gray-500 mb-4">CSVファイルからデータを一括登録します。既存データは保持され、追加されます。<br>必須列: カテゴリ, メーカー, 型番, 個・台数, 保管場所, 保管箇所, 部材詳細</p>
+                        
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors relative">
+                            <input type="file" id="csv-file-input" accept=".csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileSelect(event)">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 mb-2"></i>
+                            <p class="text-sm text-gray-600 font-medium" id="file-name-display">クリックまたはドラッグ＆ドロップでCSVを選択</p>
+                        </div>
+                        <div class="mt-4 flex justify-end">
+                            <button onclick="processCSVImport()" id="btn-import" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors disabled:opacity-50" disabled>
+                                インポート実行
+                            </button>
+                        </div>
+                    </div>
 
-      historyData.forEach(item => {
-        const memoClean = '"' + item.memo.replace(/"/g, '""') + '"';
-        csvContent += `"${item.date}",${memoClean},${item.subtotal},${item.payment},${item.profit},${item.marginRate}\n`;
-      });
+                    <!-- データ削除 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-4 text-red-700">
+                            <i class="fa-solid fa-trash-can text-xl mr-2"></i>
+                            <h3 class="text-lg font-bold">マスターデータ一括削除</h3>
+                        </div>
+                        <p class="text-sm text-gray-500 mb-4">現在登録されているすべての在庫データを完全に消去します。この操作は取り消せません。</p>
+                        <div class="mt-8 flex justify-center">
+                            <button onclick="confirmBulkDelete()" class="bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 py-3 px-6 rounded-lg font-bold transition-colors flex items-center">
+                                <i class="fa-solid fa-triangle-exclamation mr-2"></i>全データを一括削除する
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `業者確定支払計算履歴_${new Date().toISOString().slice(0,10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  </script>
+                <!-- 履歴一覧 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                        <h3 class="font-bold text-gray-700"><i class="fa-solid fa-clock-rotate-left mr-2"></i>操作履歴 (最新50件)</h3>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar max-h-96">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-100 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">日時</th>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">ユーザー</th>
+                                    <th class="px-4 py-2 text-center font-medium text-gray-500">アクション</th>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">対象型番</th>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500">詳細</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- ログデータ -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
+        </div>
+    </main>
+
+    <!-- 入出庫モーダル -->
+    <div id="stock-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden opacity-0 transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 transform scale-95 transition-transform" id="stock-modal-content">
+            <div class="px-6 py-4 border-b flex justify-between items-center" id="stock-modal-header">
+                <h3 class="font-bold text-lg" id="stock-modal-title">処理</h3>
+                <button onclick="closeStockModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-500 mb-1">対象商品</p>
+                <p class="font-bold text-gray-800 mb-4 text-lg" id="modal-item-name">型番表示</p>
+                
+                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg mb-6 border">
+                    <span class="text-gray-600 font-medium">現在の在庫数</span>
+                    <span class="text-2xl font-bold text-gray-800" id="modal-current-qty">0</span>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2" id="modal-input-label">数量</label>
+                    <div class="flex items-center">
+                        <button type="button" onclick="adjustModalQty(-1)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 w-12 h-12 rounded-l-lg flex items-center justify-center text-xl font-bold border border-gray-300 border-r-0 transition-colors">-</button>
+                        <input type="number" id="modal-input-qty" value="1" min="1" class="w-full h-12 text-center text-xl font-bold border-y border-gray-300 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+                        <button type="button" onclick="adjustModalQty(1)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 w-12 h-12 rounded-r-lg flex items-center justify-center text-xl font-bold border border-gray-300 border-l-0 transition-colors">+</button>
+                    </div>
+                </div>
+                
+                <button id="btn-submit-stock" onclick="submitStockChange()" class="w-full text-white font-bold py-3 px-4 rounded-lg shadow-sm transition-colors mt-2">
+                    確定する
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 汎用確認モーダル (削除用など) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4 text-red-500 text-3xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="font-bold text-lg mb-2" id="confirm-modal-title">確認</h3>
+            <p class="text-gray-600 mb-6 text-sm" id="confirm-modal-msg">本当に実行しますか？</p>
+            <div class="flex space-x-3">
+                <button onclick="closeConfirmModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 rounded-lg transition-colors">キャンセル</button>
+                <button id="btn-confirm-action" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded-lg transition-colors">実行する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- トースト通知 -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy, limit, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global State
+        const state = {
+            isAdmin: false,
+            items: [],
+            logs: [],
+            currentTab: 'dashboard',
+            dashboardFilter: null, // selected category
+            searchQuery: '',
+            modalContext: null, // { action: 'in' | 'out', itemId: string, currentQty: number }
+            csvData: null,
+            userId: null
+        };
+
+        // Firebase Initialization
+        let db, auth;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'stock-sync-app';
+        let itemsRef, logsRef;
+
+        async function initApp() {
+            try {
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+                    // Fallback dummy config for local viewing if env is missing
+                    projectId: "dummy-project" 
+                };
+                
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Check for custom token, else anonymous
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                if (!auth.currentUser) throw new Error("Auth failed");
+                state.userId = auth.currentUser.uid;
+                
+                // Rules 1: Strict Paths
+                itemsRef = collection(db, 'artifacts', appId, 'public', 'data', 'items');
+                logsRef = collection(db, 'artifacts', appId, 'public', 'data', 'logs');
+
+                setupListeners();
+                updateUI();
+                
+                document.getElementById('loading-spinner').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Initialization Error:", error);
+                document.getElementById('loading-spinner').innerHTML = `<p class="text-red-500 font-bold">初期化エラー: データベースに接続できませんでした。<br>${error.message}</p>`;
+            }
+        }
+
+        function setupListeners() {
+            // Items Listener
+            onSnapshot(itemsRef, (snapshot) => {
+                state.items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Sort by Category then Model in memory
+                state.items.sort((a, b) => {
+                    if (a.category < b.category) return -1;
+                    if (a.category > b.category) return 1;
+                    return (a.modelNumber || "").localeCompare(b.modelNumber || "");
+                });
+                renderDashboard();
+                renderSearch();
+                checkZeroStock();
+            }, (error) => {
+                console.error("Error fetching items:", error);
+                showToast("データの取得に失敗しました", "error");
+            });
+
+            // Logs Listener (No complex queries per Rule 2, fetching all and slicing in memory)
+            onSnapshot(logsRef, (snapshot) => {
+                let allLogs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Sort descending in memory
+                allLogs.sort((a, b) => {
+                    const timeA = a.timestamp?.toMillis() || 0;
+                    const timeB = b.timestamp?.toMillis() || 0;
+                    return timeB - timeA;
+                });
+                state.logs = allLogs.slice(0, 50); // Keep only latest 50 for display
+                renderLogs();
+            }, (error) => {
+                console.error("Error fetching logs:", error);
+            });
+        }
+
+        // --- Core Functions ---
+
+        async function logAction(action, targetModel, detailMsg) {
+            if (!auth.currentUser) return;
+            const userName = state.isAdmin ? "管理者" : "一般ユーザー";
+            try {
+                await addDoc(logsRef, {
+                    userId: state.userId,
+                    userName: userName,
+                    action: action,
+                    itemModelNumber: targetModel,
+                    details: detailMsg,
+                    timestamp: serverTimestamp()
+                });
+            } catch (e) {
+                console.error("Failed to write log", e);
+            }
+        }
+
+        // --- Rendering ---
+        function updateUI() {
+            // Update Role Indicator
+            const uInd = document.getElementById('role-indicator-user');
+            const aInd = document.getElementById('role-indicator-admin');
+            
+            if (state.isAdmin) {
+                uInd.className = "px-3 py-1 text-sm rounded-full text-blue-300 font-semibold transition-all";
+                aInd.className = "px-3 py-1 text-sm rounded-full bg-blue-500 text-white font-semibold shadow-sm transition-all";
+                document.getElementById('tab-admin').classList.remove('hidden');
+                document.getElementById('nav-notification-btn').classList.remove('hidden');
+                
+                // Show Admin specific columns/buttons in tables
+                renderSearch(); 
+            } else {
+                aInd.className = "px-3 py-1 text-sm rounded-full text-blue-300 font-semibold transition-all";
+                uInd.className = "px-3 py-1 text-sm rounded-full bg-blue-500 text-white font-semibold shadow-sm transition-all";
+                document.getElementById('tab-admin').classList.add('hidden');
+                document.getElementById('nav-notification-btn').classList.add('hidden');
+                if (state.currentTab === 'admin') window.switchTab('dashboard');
+                
+                renderSearch();
+            }
+
+            // Tab Styling
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-blue-600', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            const activeBtn = document.getElementById(`tab-${state.currentTab}`);
+            if(activeBtn) {
+                activeBtn.classList.remove('border-transparent', 'text-gray-500');
+                activeBtn.classList.add('border-blue-600', 'text-blue-600');
+            }
+
+            // View Toggling
+            document.querySelectorAll('.view-section').forEach(view => view.classList.add('hidden'));
+            const activeView = document.getElementById(`view-${state.currentTab}`);
+            if(activeView) activeView.classList.remove('hidden');
+        }
+
+        function renderDashboard() {
+            // Aggregate categories
+            const categoryData = {};
+            state.items.forEach(item => {
+                const cat = item.category || '未分類';
+                if (!categoryData[cat]) {
+                    categoryData[cat] = { count: 0, totalQty: 0 };
+                }
+                categoryData[cat].count += 1;
+                categoryData[cat].totalQty += (Number(item.quantity) || 0);
+            });
+
+            // Render Cards
+            const cardsContainer = document.getElementById('category-cards');
+            cardsContainer.innerHTML = '';
+            
+            if (Object.keys(categoryData).length === 0) {
+                cardsContainer.innerHTML = `<div class="col-span-full text-gray-500 bg-white p-4 rounded text-center">データがありません</div>`;
+            }
+
+            for (const [cat, data] of Object.entries(categoryData)) {
+                const isSelected = state.dashboardFilter === cat;
+                const bgClass = isSelected ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500' : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-md';
+                const html = `
+                    <div onclick="setDashboardFilter('${cat}')" class="cursor-pointer border rounded-xl p-4 shadow-sm transition-all ${bgClass}">
+                        <h4 class="font-bold text-gray-800 text-lg mb-2 truncate" title="${cat}">${cat}</h4>
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>型番数: <span class="font-bold text-gray-900 text-base">${data.count}</span></span>
+                            <span>総数: <span class="font-bold text-blue-600 text-base">${data.totalQty}</span></span>
+                        </div>
+                    </div>
+                `;
+                cardsContainer.innerHTML += html;
+            }
+
+            // Render Table
+            const tbody = document.getElementById('dashboard-table-body');
+            tbody.innerHTML = '';
+            
+            const titleEl = document.getElementById('dashboard-list-title');
+            const clearBtn = document.getElementById('clear-filter-btn');
+            
+            let filteredItems = state.items;
+            if (state.dashboardFilter) {
+                filteredItems = state.items.filter(item => item.category === state.dashboardFilter);
+                titleEl.textContent = `カテゴリ: ${state.dashboardFilter}`;
+                clearBtn.classList.remove('hidden');
+            } else {
+                titleEl.textContent = '全カテゴリ一覧';
+                clearBtn.classList.add('hidden');
+            }
+
+            if (filteredItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">表示するデータがありません</td></tr>`;
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors';
+                
+                const qtyClass = item.quantity <= 0 ? 'text-red-600 font-bold' : 'text-gray-900';
+                
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.category || '-'}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">${item.maker || '-'}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${item.modelNumber || '-'}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right ${qtyClass}">${item.quantity}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        <div class="truncate max-w-[100px]" title="${item.location || ''} ${item.spot || ''}">${item.location || ''} ${item.spot || ''}</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium">
+                        <div class="flex justify-center space-x-2">
+                            <button onclick="openStockModal('in', '${item.id}')" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded" title="入庫"><i class="fa-solid fa-arrow-turn-down"></i> 入庫</button>
+                            <button onclick="openStockModal('out', '${item.id}')" class="text-orange-600 hover:text-orange-900 bg-orange-50 hover:bg-orange-100 p-1.5 rounded" title="出庫" ${item.quantity <= 0 ? 'disabled class="opacity-50 cursor-not-allowed text-gray-400 bg-gray-100 p-1.5 rounded"' : ''}><i class="fa-solid fa-arrow-turn-up"></i> 出庫</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderSearch() {
+            const tbody = document.getElementById('search-table-body');
+            tbody.innerHTML = '';
+
+            const q = state.searchQuery.toLowerCase();
+            
+            // Require 3 chars to show results, unless query is empty (show hint)
+            if (q.length > 0 && q.length < 3) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">あと ${3 - q.length} 文字入力してください...</td></tr>`;
+                return;
+            }
+
+            let filteredItems = state.items;
+            if (q.length >= 3) {
+                filteredItems = state.items.filter(item => {
+                    const str = [item.category, item.maker, item.modelNumber, item.details, item.location].join(' ').toLowerCase();
+                    return str.includes(q);
+                });
+            } else {
+                // Initial state or cleared search
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">検索条件を入力してください。（3文字以上）</td></tr>`;
+                return;
+            }
+
+            if (filteredItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">一致するアイテムは見つかりませんでした。</td></tr>`;
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors';
+                
+                const qtyClass = item.quantity <= 0 ? 'text-red-600 font-bold' : 'text-gray-900';
+                const delBtnHtml = state.isAdmin ? `<button onclick="requestDelete('${item.id}', '${item.modelNumber}')" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded ml-1" title="削除"><i class="fa-solid fa-trash"></i></button>` : '';
+
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${item.category || '-'}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">
+                        <div class="font-medium">${item.modelNumber || '-'}</div>
+                        <div class="text-xs text-gray-500">${item.maker || '-'}</div>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500 hidden md:table-cell max-w-xs truncate" title="${item.details || ''}">${item.details || '-'}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right ${qtyClass}">${item.quantity}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">${item.location || '-'} ${item.spot || ''}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-medium">
+                        <div class="flex justify-center items-center">
+                            <button onclick="openStockModal('in', '${item.id}')" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded ml-1" title="入庫"><i class="fa-solid fa-arrow-turn-down"></i></button>
+                            <button onclick="openStockModal('out', '${item.id}')" class="text-orange-600 hover:text-orange-900 bg-orange-50 hover:bg-orange-100 p-1.5 rounded ml-1" title="出庫" ${item.quantity <= 0 ? 'disabled style="opacity:0.3"' : ''}><i class="fa-solid fa-arrow-turn-up"></i></button>
+                            ${delBtnHtml}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderLogs() {
+            const tbody = document.getElementById('logs-table-body');
+            tbody.innerHTML = '';
+            
+            if (state.logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">履歴がありません</td></tr>`;
+                return;
+            }
+
+            state.logs.forEach(log => {
+                const date = log.timestamp ? new Date(log.timestamp.toMillis()).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'}) : '';
+                
+                let actionStyle = "bg-gray-100 text-gray-800";
+                if(log.action === '入庫') actionStyle = "bg-blue-100 text-blue-800";
+                if(log.action === '出庫') actionStyle = "bg-orange-100 text-orange-800";
+                if(log.action === '新規登録') actionStyle = "bg-green-100 text-green-800";
+                if(log.action === '削除') actionStyle = "bg-red-100 text-red-800";
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-4 py-2 whitespace-nowrap text-xs text-gray-500">${date}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-xs text-gray-700">${log.userName || '不明'}</td>
+                    <td class="px-4 py-2 whitespace-nowrap text-center text-xs">
+                        <span class="px-2 py-1 rounded-full font-medium ${actionStyle}">${log.action}</span>
+                    </td>
+                    <td class="px-4 py-2 whitespace-nowrap text-xs font-medium text-gray-900">${log.itemModelNumber || '-'}</td>
+                    <td class="px-4 py-2 text-xs text-gray-600 max-w-xs truncate" title="${log.details}">${log.details || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function checkZeroStock() {
+            const zeroItems = state.items.filter(i => i.quantity === 0);
+            const badge = document.getElementById('zero-stock-badge');
+            const alertSection = document.getElementById('admin-zero-stock-section');
+            const tbody = document.getElementById('zero-stock-table-body');
+            
+            if (zeroItems.length > 0) {
+                badge.textContent = zeroItems.length;
+                badge.classList.remove('hidden');
+                
+                if (state.isAdmin) {
+                    alertSection.classList.remove('hidden');
+                    tbody.innerHTML = zeroItems.map(i => `
+                        <tr>
+                            <td class="px-3 py-2 font-medium">${i.modelNumber}</td>
+                            <td class="px-3 py-2">${i.category}</td>
+                            <td class="px-3 py-2 text-center">
+                                <button onclick="requestDelete('${i.id}', '${i.modelNumber}')" class="text-xs bg-red-600 hover:bg-red-700 text-white py-1 px-2 rounded">削除</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } else {
+                badge.classList.add('hidden');
+                alertSection.classList.add('hidden');
+            }
+        }
+
+
+        // --- Event Handlers Window Binding ---
+        
+        window.toggleAdmin = () => {
+            state.isAdmin = !state.isAdmin;
+            updateUI();
+            checkZeroStock(); // re-eval visibility
+            showToast(state.isAdmin ? "管理者モードに切り替えました" : "一般モードに切り替えました");
+        };
+
+        window.switchTab = (tabName) => {
+            if (tabName === 'admin' && !state.isAdmin) return;
+            state.currentTab = tabName;
+            updateUI();
+        };
+
+        window.setDashboardFilter = (cat) => {
+            state.dashboardFilter = state.dashboardFilter === cat ? null : cat;
+            renderDashboard();
+        };
+        
+        window.clearDashboardFilter = () => {
+            state.dashboardFilter = null;
+            renderDashboard();
+        };
+
+        window.handleSearch = () => {
+            state.searchQuery = document.getElementById('search-input').value;
+            renderSearch();
+        };
+
+        // --- Stock Operations ---
+        window.openStockModal = (action, itemId) => {
+            const item = state.items.find(i => i.id === itemId);
+            if (!item) return;
+
+            state.modalContext = { action, itemId, currentQty: item.quantity, modelNumber: item.modelNumber };
+            
+            document.getElementById('stock-modal-title').textContent = action === 'in' ? '入庫処理' : '出庫処理';
+            document.getElementById('modal-item-name').textContent = item.modelNumber;
+            document.getElementById('modal-current-qty').textContent = item.quantity;
+            document.getElementById('modal-input-qty').value = 1;
+            
+            const btn = document.getElementById('btn-submit-stock');
+            if (action === 'in') {
+                btn.className = "w-full text-white font-bold py-3 px-4 rounded-lg shadow-sm transition-colors mt-2 bg-blue-600 hover:bg-blue-700";
+            } else {
+                btn.className = "w-full text-white font-bold py-3 px-4 rounded-lg shadow-sm transition-colors mt-2 bg-orange-600 hover:bg-orange-700";
+                // Set max for output
+                document.getElementById('modal-input-qty').max = item.quantity;
+            }
+
+            const modal = document.getElementById('stock-modal');
+            const content = document.getElementById('stock-modal-content');
+            modal.classList.remove('hidden');
+            // Animate in
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+            }, 10);
+        };
+
+        window.closeStockModal = () => {
+            const modal = document.getElementById('stock-modal');
+            const content = document.getElementById('stock-modal-content');
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                state.modalContext = null;
+            }, 300);
+        };
+
+        window.adjustModalQty = (delta) => {
+            const input = document.getElementById('modal-input-qty');
+            let val = parseInt(input.value) || 0;
+            val += delta;
+            
+            if (val < 1) val = 1;
+            if (state.modalContext.action === 'out' && val > state.modalContext.currentQty) {
+                val = state.modalContext.currentQty;
+            }
+            input.value = val;
+        };
+
+        window.submitStockChange = async () => {
+            if (!auth.currentUser || !state.modalContext) return;
+            const inputVal = parseInt(document.getElementById('modal-input-qty').value);
+            if (isNaN(inputVal) || inputVal <= 0) return;
+
+            const { action, itemId, currentQty, modelNumber } = state.modalContext;
+            let newQty = currentQty;
+            
+            if (action === 'in') newQty += inputVal;
+            if (action === 'out') newQty -= inputVal;
+
+            if (newQty < 0) newQty = 0; // Guard
+
+            const btn = document.getElementById('btn-submit-stock');
+            const originalText = btn.textContent;
+            btn.textContent = '処理中...';
+            btn.disabled = true;
+
+            try {
+                const docRef = doc(itemsRef, itemId);
+                await updateDoc(docRef, { 
+                    quantity: newQty,
+                    updatedAt: serverTimestamp() 
+                });
+
+                const actName = action === 'in' ? '入庫' : '出庫';
+                await logAction(actName, modelNumber, `${inputVal}個の${actName}。 (残: ${newQty})`);
+
+                showToast(`${actName}を完了しました`, 'success');
+                closeStockModal();
+            } catch (error) {
+                console.error("Error updating stock:", error);
+                showToast("更新に失敗しました", 'error');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        // --- Add New Item ---
+        window.handleAddNewItem = async (e) => {
+            e.preventDefault();
+            if (!auth.currentUser) return;
+
+            const btn = document.getElementById('btn-submit-add');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>処理中...';
+
+            const newItem = {
+                category: document.getElementById('add-category').value.trim(),
+                maker: document.getElementById('add-maker').value.trim(),
+                modelNumber: document.getElementById('add-model').value.trim(),
+                quantity: parseInt(document.getElementById('add-qty').value) || 0,
+                location: document.getElementById('add-location').value.trim(),
+                spot: document.getElementById('add-spot').value.trim(),
+                details: document.getElementById('add-details').value.trim(),
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+
+            try {
+                await addDoc(itemsRef, newItem);
+                await logAction('新規登録', newItem.modelNumber, `初期在庫: ${newItem.quantity}`);
+                
+                showToast('新規アイテムを登録しました', 'success');
+                document.getElementById('add-form').reset();
+                switchTab('dashboard'); // Jump back to see it
+            } catch (error) {
+                console.error("Error adding item:", error);
+                showToast('登録に失敗しました', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>登録する';
+            }
+        };
+
+        // --- Delete Logic ---
+        let deleteTarget = null;
+        window.requestDelete = (id, modelNumber) => {
+            if (!state.isAdmin) return;
+            deleteTarget = { id, modelNumber };
+            
+            document.getElementById('confirm-modal-title').textContent = "データ削除の確認";
+            document.getElementById('confirm-modal-msg').innerHTML = `<span class="font-bold text-red-600">${modelNumber}</span> を削除しますか？<br>この操作は取り消せません。`;
+            
+            const btn = document.getElementById('btn-confirm-action');
+            btn.onclick = executeDelete;
+            
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        };
+
+        async function executeDelete() {
+            if (!deleteTarget || !auth.currentUser) return;
+            const { id, modelNumber } = deleteTarget;
+            
+            const btn = document.getElementById('btn-confirm-action');
+            btn.textContent = '削除中...';
+            btn.disabled = true;
+
+            try {
+                await deleteDoc(doc(itemsRef, id));
+                await logAction('削除', modelNumber, 'アイテムをマスタから削除');
+                
+                showToast('削除しました', 'success');
+                closeConfirmModal();
+            } catch (e) {
+                console.error(e);
+                showToast('削除に失敗しました', 'error');
+            } finally {
+                btn.textContent = '実行する';
+                btn.disabled = false;
+            }
+        }
+
+        window.closeConfirmModal = () => {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            deleteTarget = null;
+        };
+
+        // --- Admin CSV Import ---
+        window.handleFileSelect = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const label = document.getElementById('file-name-display');
+            label.textContent = file.name;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const text = event.target.result;
+                parseCSV(text);
+            };
+            reader.readAsText(file);
+        };
+
+        function parseCSV(text) {
+            // Very simple CSV parser for the prototype
+            const lines = text.split('\n');
+            if (lines.length < 2) {
+                showToast('データがありません', 'error');
+                return;
+            }
+            
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            const parsed = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                // Handling commas inside quotes would require a robust Regex/Library, keeping simple for demo
+                const values = lines[i].split(',');
+                
+                // Expecting map: カテゴリ, メーカー, 型番, 個・台数, 保管場所, 保管箇所, 部材詳細
+                // Find indices (robust to column order changes if headers match)
+                const getVal = (colName) => {
+                    const idx = headers.findIndex(h => h.includes(colName));
+                    return idx >= 0 && values[idx] ? values[idx].trim().replace(/^"|"$/g, '') : '';
+                };
+
+                const item = {
+                    category: getVal('カテゴリ'),
+                    maker: getVal('メーカー'),
+                    modelNumber: getVal('型番'),
+                    quantity: parseInt(getVal('台数') || getVal('個')) || 0, // handles '個・台数'
+                    location: getVal('場所'),
+                    spot: getVal('箇所'),
+                    details: getVal('詳細')
+                };
+                
+                if (item.modelNumber) parsed.push(item);
+            }
+            
+            if (parsed.length > 0) {
+                state.csvData = parsed;
+                document.getElementById('btn-import').disabled = false;
+                document.getElementById('btn-import').textContent = `${parsed.length}件をインポート`;
+            } else {
+                showToast('有効なデータが見つかりません', 'error');
+            }
+        }
+
+        window.processCSVImport = async () => {
+            if (!state.csvData || !auth.currentUser) return;
+            const btn = document.getElementById('btn-import');
+            btn.disabled = true;
+            btn.textContent = 'インポート処理中...';
+
+            try {
+                // For safety and limits, usually we batch this. 
+                // Firestore batch limit is 500. We will do chunks.
+                const chunks = [];
+                let currentChunk = writeBatch(db);
+                let count = 0;
+
+                for (const item of state.csvData) {
+                    const docRef = doc(itemsRef); // new generated ID
+                    currentChunk.set(docRef, {
+                        ...item,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+                    count++;
+                    if (count === 490) {
+                        chunks.push(currentChunk);
+                        currentChunk = writeBatch(db);
+                        count = 0;
+                    }
+                }
+                if (count > 0) chunks.push(currentChunk);
+
+                for (const chunk of chunks) {
+                    await chunk.commit();
+                }
+
+                await logAction('インポート', '複数データ', `CSVから${state.csvData.length}件をインポート`);
+                
+                showToast('インポートが完了しました', 'success');
+                state.csvData = null;
+                document.getElementById('file-name-display').textContent = "クリックまたはドラッグ＆ドロップでCSVを選択";
+                document.getElementById('csv-file-input').value = "";
+                
+            } catch (e) {
+                console.error(e);
+                showToast('インポートに失敗しました', 'error');
+            } finally {
+                btn.textContent = 'インポート実行';
+            }
+        };
+
+        // --- Bulk Delete ---
+        window.confirmBulkDelete = () => {
+            if (!state.isAdmin) return;
+            document.getElementById('confirm-modal-title').textContent = "【危険】全データ一括削除";
+            document.getElementById('confirm-modal-msg').innerHTML = `本当に<span class="font-bold text-red-600">すべての在庫データ</span>を削除しますか？<br>この操作は取り消せません。`;
+            
+            const btn = document.getElementById('btn-confirm-action');
+            btn.onclick = executeBulkDelete;
+            
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        };
+
+        async function executeBulkDelete() {
+            if (!auth.currentUser || !state.isAdmin) return;
+            const btn = document.getElementById('btn-confirm-action');
+            btn.textContent = '削除中...';
+            btn.disabled = true;
+
+            try {
+                // Firestore doesn't have "delete collection", must delete docs.
+                // Doing simple loop (not ideal for huge datasets, but fine for small to med)
+                const promises = state.items.map(item => deleteDoc(doc(itemsRef, item.id)));
+                await Promise.all(promises);
+
+                await logAction('削除', '全データ', 'マスターデータを一括消去');
+                
+                showToast('全データを削除しました', 'success');
+                closeConfirmModal();
+            } catch (e) {
+                console.error(e);
+                showToast('削除中にエラーが発生しました', 'error');
+            } finally {
+                btn.textContent = '実行する';
+                btn.disabled = false;
+            }
+        }
+
+        // --- Utilities ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-gray-800';
+            let icon = 'fa-info-circle';
+            if (type === 'success') { bgClass = 'bg-green-600'; icon = 'fa-check-circle'; }
+            if (type === 'error') { bgClass = 'bg-red-600'; icon = 'fa-exclamation-circle'; }
+
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-lg flex items-center toast`;
+            toast.innerHTML = `<i class="fa-solid ${icon} mr-3"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Trigger reflow for animation
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
 </body>
 </html>
