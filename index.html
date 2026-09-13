@@ -472,7 +472,11 @@
                 checkZeroStock();
             }, (error) => {
                 console.error("Error fetching items:", error);
-                showToast("データの取得に失敗しました", "error");
+                if (error.code === 'permission-denied') {
+                    showToast("Firestore権限エラー: セキュリティルールの設定が必要です", "error");
+                } else {
+                    showToast("データの取得に失敗しました: " + (error.message || error), "error");
+                }
             });
 
             // Logs Listener (No complex queries per Rule 2, fetching all and slicing in memory)
@@ -971,33 +975,51 @@
         };
 
         function parseCSV(text) {
-            // Very simple CSV parser for the prototype
-            const lines = text.split('\n');
+            // BOMの除去と改行コードの正規化
+            text = text.replace(/^\uFEFF/, '');
+            const lines = text.split(/\r\n|\n|\r/);
             if (lines.length < 2) {
                 showToast('データがありません', 'error');
                 return;
             }
             
-            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            // クォート囲み対応の標準CSV解析関数
+            const parseCSVRow = (row) => {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < row.length; i++) {
+                    const char = row[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current.trim().replace(/^"|"$/g, ''));
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                result.push(current.trim().replace(/^"|"$/g, ''));
+                return result;
+            };
+
+            const headers = parseCSVRow(lines[0]);
             const parsed = [];
             
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
-                // Handling commas inside quotes would require a robust Regex/Library, keeping simple for demo
-                const values = lines[i].split(',');
+                const values = parseCSVRow(lines[i]);
                 
-                // Expecting map: カテゴリ, メーカー, 型番, 個・台数, 保管場所, 保管箇所, 部材詳細
-                // Find indices (robust to column order changes if headers match)
                 const getVal = (colName) => {
                     const idx = headers.findIndex(h => h.includes(colName));
-                    return idx >= 0 && values[idx] ? values[idx].trim().replace(/^"|"$/g, '') : '';
+                    return idx >= 0 && values[idx] !== undefined ? values[idx].trim() : '';
                 };
 
                 const item = {
                     category: getVal('カテゴリ'),
                     maker: getVal('メーカー'),
                     modelNumber: getVal('型番'),
-                    quantity: parseInt(getVal('台数') || getVal('個')) || 0, // handles '個・台数'
+                    quantity: parseInt(getVal('台数') || getVal('個') || '0', 10) || 0,
                     location: getVal('場所'),
                     spot: getVal('箇所'),
                     details: getVal('詳細')
@@ -1010,33 +1032,36 @@
                 state.csvData = parsed;
                 document.getElementById('btn-import').disabled = false;
                 document.getElementById('btn-import').textContent = `${parsed.length}件をインポート`;
+                showToast(`${parsed.length}件のデータを読み込みました。「インポート実行」を押してください。`, 'info');
             } else {
-                showToast('有効なデータが見つかりません', 'error');
+                showToast('有効なデータが見つかりません。ヘッダー（型番等）を確認してください。', 'error');
             }
         }
 
         window.processCSVImport = async () => {
-            if (!state.csvData || !auth.currentUser) return;
+            if (!state.csvData || !auth.currentUser) {
+                showToast('インポートするデータがないか、認証されていません', 'error');
+                return;
+            }
             const btn = document.getElementById('btn-import');
             btn.disabled = true;
             btn.textContent = 'インポート処理中...';
 
             try {
-                // For safety and limits, usually we batch this. 
-                // Firestore batch limit is 500. We will do chunks.
+                // Firestore batch limit is 500
                 const chunks = [];
                 let currentChunk = writeBatch(db);
                 let count = 0;
 
                 for (const item of state.csvData) {
-                    const docRef = doc(itemsRef); // new generated ID
+                    const docRef = doc(itemsRef);
                     currentChunk.set(docRef, {
                         ...item,
                         createdAt: serverTimestamp(),
                         updatedAt: serverTimestamp()
                     });
                     count++;
-                    if (count === 490) {
+                    if (count === 400) {
                         chunks.push(currentChunk);
                         currentChunk = writeBatch(db);
                         count = 0;
@@ -1044,21 +1069,27 @@
                 }
                 if (count > 0) chunks.push(currentChunk);
 
-                for (const chunk of chunks) {
-                    await chunk.commit();
+                for (let i = 0; i < chunks.length; i++) {
+                    btn.textContent = `インポート処理中 (${i + 1}/${chunks.length})...`;
+                    await chunks[i].commit();
                 }
 
                 await logAction('インポート', '複数データ', `CSVから${state.csvData.length}件をインポート`);
                 
-                showToast('インポートが完了しました', 'success');
+                showToast(`インポートが完了しました (${state.csvData.length}件)`, 'success');
                 state.csvData = null;
                 document.getElementById('file-name-display').textContent = "クリックまたはドラッグ＆ドロップでCSVを選択";
                 document.getElementById('csv-file-input').value = "";
                 
             } catch (e) {
-                console.error(e);
-                showToast('インポートに失敗しました', 'error');
+                console.error("CSV Import Error:", e);
+                if (e.code === 'permission-denied' || (e.message && e.message.includes('permission'))) {
+                    showToast('エラー: Firestoreのセキュリティルール（書き込み権限）が拒否されています。Firebaseコンソールでルールを設定してください。', 'error');
+                } else {
+                    showToast(`インポート失敗: ${e.message || e}`, 'error');
+                }
             } finally {
+                btn.disabled = false;
                 btn.textContent = 'インポート実行';
             }
         };
