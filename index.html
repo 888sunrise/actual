@@ -393,10 +393,19 @@
                 db = getFirestore(app);
 
                 // Check for custom token, else anonymous
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (authError) {
+                    console.warn("Auth initialization failed:", authError);
+                    if (authError.code === 'auth/configuration-not-found' || (authError.message && authError.message.includes('configuration-not-found'))) {
+                        showFirebaseAuthConfigError();
+                        return;
+                    }
+                    throw authError;
                 }
 
                 if (!auth.currentUser) throw new Error("Auth failed");
@@ -414,8 +423,38 @@
 
             } catch (error) {
                 console.error("Initialization Error:", error);
-                document.getElementById('loading-spinner').innerHTML = `<p class="text-red-500 font-bold">初期化エラー: データベースに接続できませんでした。<br>${error.message}</p>`;
+                document.getElementById('loading-spinner').innerHTML = `<p class="text-red-500 font-bold p-4 text-center">初期化エラー: データベースに接続できませんでした。<br>${error.message}</p>`;
             }
+        }
+
+        function showFirebaseAuthConfigError() {
+            const spinner = document.getElementById('loading-spinner');
+            spinner.innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-xl p-6 max-w-2xl text-left shadow-md my-8 mx-auto">
+                    <div class="flex items-center text-red-700 font-bold text-lg mb-3">
+                        <i class="fa-solid fa-triangle-exclamation text-2xl mr-3"></i>
+                        Firebase Authentication 設定未完了エラー
+                    </div>
+                    <p class="text-gray-700 text-sm mb-4">
+                        GitHub Pages等の外部環境で利用するには、Firebaseコンソールで<strong>「Authentication（認証）」</strong>を初期化する必要があります。
+                    </p>
+                    <div class="bg-white p-4 rounded-lg border border-red-100 text-xs text-gray-800 space-y-3 font-sans">
+                        <div>
+                            <strong class="text-blue-600 block mb-1">【手順1】 Authentication を有効化</strong>
+                            Firebase Console ➔ 「Authentication」 ➔ 「始める」をクリック
+                        </div>
+                        <div>
+                            <strong class="text-blue-600 block mb-1">【手順2】 匿名認証をオンにする</strong>
+                            「Sign-in method」タブ ➔ 「匿名 (Anonymous)」 ➔ 有効化スイッチをONにして保存
+                        </div>
+                        <div>
+                            <strong class="text-blue-600 block mb-1">【手順3】 GitHub Pages のドメインを許可</strong>
+                            「設定 (Settings)」タブ ➔ 「承認済みドメイン」 ➔ GitHub Pagesのドメイン (例: <code>yourname.github.io</code>) を追加
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-4 text-center">※ 設定完了後、ページを再読み込み（F5）してください。</p>
+                </div>
+            `;
         }
 
         function setupListeners() {
